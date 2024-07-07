@@ -1,4 +1,3 @@
-/node_modules/
-/output*/
+node_modules/
+output/
 target/
-.DS_store

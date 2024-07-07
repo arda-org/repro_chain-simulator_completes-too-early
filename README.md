@@ -1,81 +1,69 @@
-# 'blank' contract
+Scenario that fails:
+- User calls a contract that tries to issue a token but with an incorrect fee
+- The chain simulator says the transaction is processed but the callback is not executed yet
 
-An empty contract that comes fully set up with tests and blockchain interactions.
-
-To create a copy of the 'blank' contract on your computer:
-
-```
-xsuite new --dir my-contract
-cd my-contract
-```
-
-Note that `xsuite` and Rust must be installed on your computer. To install, run:
+## How to reproduce
 
 ```
-npm install -g xsuite
-xsuite install-rust
-```
+npm install
 
-## Build contract
-
-Write the contract logic in `src/lib.rs`. Then build the contract with:
-
-```
 npm run build
-```
 
-## Test contract
-
-Write the tests in `tests/contract.test.ts`. Then test the contract with:
-
-```
 npm run test
 ```
 
-## Interact with contract
+## The contract
 
-Write the interactions in `interact/index.ts`. Then interact with:
-
-- On devnet:
-
-  ```
-  npm run interact:devnet [command]
-  ```
-
-- On testnet:
-
-  ```
-  npm run interact:testnet [command]
-  ```
-
-- On mainnet:
-
-  ```
-  npm run interact:mainnet [command]
-  ```
-
-To list all available commands:
+The contract ([contract.rs](./contract.rs)):
 
 ```
-npm run interact:devnet --help
+pub trait Contract {
+    ...
+
+    #[only_owner]
+    #[endpoint(issue)]
+    #[payable("EGLD")]
+    fn issue(&self) {
+        let payment = self.call_value().egld_value().clone_value();
+        self.send().esdt_system_sc_proxy()
+            .issue_fungible(
+                payment.clone(),
+                &ManagedBuffer::new_from_bytes("TEST".as_bytes()),
+                &ManagedBuffer::new_from_bytes("TEST".as_bytes()),
+                &BigUint::zero(),
+                FungibleTokenProperties::default(),
+            )
+            .async_call_and_exit();
+    }
+
+    #[storage_mapper("token")]
+    fn token(&self) -> FungibleTokenMapper<Self::Api>;
+}
 ```
 
-For example, if you want to deploy the contract on devnet:
+## The test
+
+The test ([./contract.test.rs](./contract.test.ts)):
 
 ```
-npm run interact:devnet deploy
-```
-
-## Wallet & Funding
-
-To create a new keystore wallet at path `wallet.json`:
-
-```
-xsuite new-wallet --wallet wallet.json
-```
-
-To fund this wallet with 30 xEGLD:
-
-```
-xsuite request-xegld --wallet wallet.json
+test("Test", async () => {
+  using world = await FSWorld.start();
+  const deployer = await world.createWallet({
+    balance: 10n ** 18n,
+  });
+  const { contract } = await deployer.deployContract({
+    code: "file:output/contract.wasm",
+    codeMetadata: [],
+    gasLimit: 100_000_000,
+  });
+  await deployer.callContract({
+    callee: contract,
+    funcName: "issue",
+    value: 10n ** 16n,
+    gasLimit: 10_000_000,
+  });
+  assertAccount(await contract.getAccount(), {
+    kvs: [],
+  });
+});
 ```
