@@ -2,7 +2,9 @@ import { test } from "vitest";
 import { assertAccount, FSWorld } from "xsuite";
 
 test("Test", async () => {
-  using world = await FSWorld.start();
+  using world = await FSWorld.start({
+    // binaryPath: "path/to/binary"
+  });
   const deployer = await world.createWallet({
     balance: 10n ** 18n,
   });
