@@ -1,3 +1,5 @@
+FIXED ✅
+
 Scenario that fails:
 - User calls a contract that tries to issue a token but with an incorrect fee
 - The chain simulator says the transaction is processed but the callback is not executed yet

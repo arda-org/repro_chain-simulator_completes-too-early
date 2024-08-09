@@ -1,5 +1,5 @@
 import { test } from "vitest";
-import { assertAccount, FSWorld } from "xsuite";
+import { FSWorld } from "xsuite";
 
 test("Test", async () => {
   using world = await FSWorld.start({
@@ -18,8 +18,5 @@ test("Test", async () => {
     funcName: "issue",
     value: 10n ** 16n,
     gasLimit: 10_000_000,
-  });
-  assertAccount(await contract.getAccount(), {
-    kvs: [],
-  });
+  }).assertFail({ code: "returnMessage", message: "not enough gas" });
 });
